@@ -12,7 +12,7 @@ import cv2
 
 from ultralytics import YOLO
 
-model = YOLO("yolov8m.pt")  # load a pretrained model (recommended for training)
+model = YOLO("yolov8n.pt")  # load a pretrained model (recommended for training)
 
 
 def calculate_distance(color_intrin, depth_frame, ix, iy, x, y):
@@ -89,7 +89,7 @@ try:
             name = names[int(name)]
             # print(name)
 
-            if name == "cup":
+            if name == "mouse":
                 box = list(map(int, box))
                 cv2.rectangle(
                     color_image, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2
@@ -102,7 +102,7 @@ try:
 
                 dist = depth_frame.get_distance(center_x, center_y)
                 
-                cv2.putText(color_image, str(dist), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
+                cv2.putText(color_image, str(f'{dist:.2f}'), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
 
                 distance_2_point = calculate_distance(color_intrin, depth_frame, x_a, y_a, center_x, center_y)
                 print(distance_2_point)
@@ -123,6 +123,7 @@ try:
         # Show images
         cv2.namedWindow("RealSense", cv2.WINDOW_AUTOSIZE)
         cv2.imshow("RealSense", color_image)
+        
         key = cv2.waitKey(1)
         
         if key & 0xFF == ord('q') or key == 27:
@@ -132,3 +133,4 @@ try:
 finally:
     # Stop streaming
     pipeline.stop()
+
