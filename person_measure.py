@@ -12,7 +12,7 @@ import cv2
 
 from ultralytics import YOLO
 
-model = YOLO("yolov8n.pt")  # load a pretrained model (recommended for training)
+model = YOLO("yolov8m.pt") # load a pretrained model (recommended for training)
 
 
 def calculate_distance(color_intrin, depth_frame, ix, iy, x, y):
@@ -77,19 +77,23 @@ try:
         depth_image = np.asanyarray(depth_frame.get_data())
         color_image = np.asanyarray(color_frame.get_data())
         
+        center_frame_x = int(color_frame.width / 2)
+        center_frame_y = int(color_frame.height / 2)
+        cv2.circle(color_image, (center_frame_x, center_frame_y), 5, (0, 0, 255), -1)
+        
         color_intrin = color_frame.profile.as_video_stream_profile().intrinsics
         # print(color_intrin)
 
         result = model.predict(color_image)
         list_class = result[0].boxes.cls
         names = model.names
-        bboxes = result[0].boxes.xyxy.numpy()
-
+        bboxes = result[0].cpu().boxes.xyxy.numpy()
+        
         for box, name in zip(bboxes, list_class):
             name = names[int(name)]
             # print(name)
 
-            if name == "mouse":
+            if name == "person":
                 box = list(map(int, box))
                 cv2.rectangle(
                     color_image, (box[0], box[1]), (box[2], box[3]), (0, 255, 0), 2
@@ -97,15 +101,31 @@ try:
 
                 center_x = int((box[0] + box[2]) / 2)
                 center_y = int((box[1] + box[3]) / 2)
-                x_a = int(box[0])
-                y_a = center_y
-
-                dist = depth_frame.get_distance(center_x, center_y)
                 
-                cv2.putText(color_image, str(f'{dist:.2f}'), (box[0], box[1] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
+                # cv2.circle(color_image, (center_x, center_y), 5, (0, 0, 255), -1)
+                
+                x_a = center_x
+                y_a = int(box[1]) + 5
+                
+                x_b = center_x
+                y_b = int(box[3]) - 5
+                
+                cv2.circle(color_image, (center_x, center_y), 5, (0, 0, 255), -1)
+                # cv2.circle(color_image, (x_a, y_a), 5, (0, 0, 255), -1)
+                # cv2.circle(color_image, (x_b, y_b), 5, (0, 0, 255), -1)
+                
+                dist = depth_frame.get_distance(center_x, center_y)
+                # dist_a = depth_frame.get_distance(x_a, y_a)
+                # dist_b = depth_frame.get_distance(x_b, y_b)
+                
+                cv2.putText(color_image, str(f'{dist:.5f}'), (box[0], box[3] - 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
+                # cv2.putText(color_image, str(f'{dist_a:.5f}'), (box[0], box[3] - 30), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
+                # cv2.putText(color_image, str(f'{dist_b:.5f}'), (box[0], box[3] - 10), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1, (0, 0, 255), 1, cv2.LINE_AA)
 
-                distance_2_point = calculate_distance(color_intrin, depth_frame, x_a, y_a, center_x, center_y)
-                print(distance_2_point)
+                # distance_2_point = calculate_distance(color_intrin, depth_frame, x_a, y_a, center_x, center_y)
+                # print(distance_2_point)
+            
+            
                 
         # Apply colormap on depth image (image must be converted to 8-bit per pixel first)
         # depth_colormap = cv2.applyColorMap(cv2.convertScaleAbs(depth_image, alpha=0.03), cv2.COLORMAP_JET)
